@@ -25,7 +25,7 @@ A step-by-step series of examples that tell you how to get a development environ
 
 1. Clone the repo:
    ```sh
-   git clone https://github.com/yourusername/cloud-jammer-york.git
+   git clone https://github.com/yourusername/cloud-jammer-android.git
 Open the project in Android Studio.
 Sync the project with Gradle files.
 Run the project on an emulator or real device.
