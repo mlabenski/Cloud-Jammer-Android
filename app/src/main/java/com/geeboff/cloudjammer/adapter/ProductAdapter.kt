@@ -9,17 +9,16 @@ import com.geeboff.cloudjammer.R
 import com.geeboff.cloudjammer.model.Product
 import com.geeboff.cloudjammer.model.ProductItem
 
-class ProductAdapter(private var items: MutableList<ProductItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class ProductAdapter(private val items: MutableList<ProductItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    companion object {
-        const val TYPE_HEADER = 0
-        const val TYPE_ITEM = 1
+    enum class ViewType {
+        HEADER, ITEM
     }
 
     override fun getItemViewType(position: Int): Int {
         return when (items[position]) {
-            is ProductItem.Header -> TYPE_HEADER
-            is ProductItem.Item -> TYPE_ITEM
+            is ProductItem.Header -> ViewType.HEADER.ordinal
+            is ProductItem.Item -> ViewType.ITEM.ordinal
         }
     }
 
@@ -31,12 +30,12 @@ class ProductAdapter(private var items: MutableList<ProductItem>) : RecyclerView
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
-            TYPE_HEADER -> {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_header, parent, false)
+            ViewType.HEADER.ordinal -> {
+                val view = LayoutInflater.from(parent.context).inflate(R.layout.header_layout, parent, false)
                 HeaderViewHolder(view)
             }
             else -> {
-                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_product, parent, false)
+                val view = LayoutInflater.from(parent.context).inflate(R.layout.menu_item_layout, parent, false)
                 ProductViewHolder(view)
             }
         }
@@ -52,7 +51,7 @@ class ProductAdapter(private var items: MutableList<ProductItem>) : RecyclerView
     override fun getItemCount() = items.size
 
     class HeaderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val brandName: TextView = itemView.findViewById(R.id.productBrandName)
+        private val brandName: TextView = itemView.findViewById(R.id.headerBrandName)
 
         fun bind(header: ProductItem.Header) {
             brandName.text = header.brandName
@@ -67,10 +66,10 @@ class ProductAdapter(private var items: MutableList<ProductItem>) : RecyclerView
 
         fun bind(product: Product) {
             productName.text = product.flavor
+            // Removed the line for binding the brand name here since it's part of the header
             productDescription.text = product.description
             productNicotine.text = product.nicotine_amount
             productSize.text = product.bottle_size
         }
     }
-
 }

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    card_view:cardCornerRadius="4dp"
+    card_view:cardCornerRadius="8dp"
     card_view:cardElevation="4dp">
 
     <LinearLayout
@@ -13,39 +13,45 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- TextView for the product name -->
         <TextView
             android:id="@+id/productName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="18sp"
             android:textColor="#000"
+            android:textStyle="bold"
+            android:paddingTop="8dp"
             android:text="Product Name" />
 
+        <!-- TextView for the product description -->
         <TextView
             android:id="@+id/productDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="#666"
-            android:text="Product Description"
-            android:layout_marginTop="4dp" />
+            android:paddingTop="4dp"
+            android:text="Product Description" />
 
+        <!-- TextView for the nicotine percentage -->
         <TextView
             android:id="@+id/productNicotine"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="#666"
-            android:text="Nicotine Percentage"
-            android:layout_marginTop="4dp" />
+            android:paddingTop="4dp"
+            android:text="Nicotine Percentage" />
 
+        <!-- TextView for the size -->
         <TextView
             android:id="@+id/productSize"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="#666"
-            android:text="Size"
-            android:layout_marginTop="4dp" />
+            android:paddingTop="4dp"
+            android:text="Size" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
