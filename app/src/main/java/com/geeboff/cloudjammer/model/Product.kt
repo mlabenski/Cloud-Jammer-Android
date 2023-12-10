@@ -6,6 +6,8 @@ data class Product(
     val brand_name: String,
     val description: String,
     val nicotine_amount: String,
-    val bottle_size: String
+    val bottle_size: String,
+    val categories: String,
+    val image: String
     // Include other fields as necessary
 )

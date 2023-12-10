@@ -1,45 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="8dp">
+    android:columnCount="2"
+    android:padding="8dp"
+    android:useDefaultMargins="true"
+    android:alignmentMode="alignMargins"
+    android:background="@drawable/background_product">
 
-    <TextView
-        android:id="@+id/productName"
-        android:layout_width="match_parent"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textColor="#333"
-        android:layout_marginTop="4dp"
-        android:text="Product Name" />
-    <TextView
-        android:id="@+id/productDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:textColor="#666"
-        android:layout_marginTop="4dp"
-        android:text="Description Name" />
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:background="@drawable/background_product"
+        android:layout_columnWeight="1"
+        android:layout_margin="4dp">
 
-    <TextView
-        android:id="@+id/productNicotine"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:fontFamily="sans-serif"
-        android:paddingTop="2dp"
-        android:textColor="#555"
-        android:text="Nicotine Percentage" />
+        <ImageView
+            android:id="@+id/productImage"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scaleType="fitCenter"
+            android:src="@drawable/sharp_smoking_rooms_24" />
+        <TextView
+            android:id="@+id/productName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#333"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="Product Name" />
+        <TextView
+            android:id="@+id/productDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#333"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="Product Desc" />
 
-    <TextView
-        android:id="@+id/productSize"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:fontFamily="sans-serif"
-        android:paddingTop="2dp"
-        android:textColor="#555"
-        android:text="Size" />
+        <TextView
+            android:id="@+id/productNicotine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#333"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="Product Nic" />
+        <TextView
+            android:id="@+id/categories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#333"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="Product Categories" />
+
+        <TextView
+            android:id="@+id/productSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="#333"
+            android:gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="Product Size" />
 
 </LinearLayout>
+</GridLayout>

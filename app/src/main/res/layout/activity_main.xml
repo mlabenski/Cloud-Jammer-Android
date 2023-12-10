@@ -27,6 +27,30 @@
             android:layout_height="wrap_content"
             android:text="Toggle View" />
     </androidx.appcompat.widget.Toolbar>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFF"
+        android:orientation="horizontal">
+
+        <!-- SearchView with a weight of 3 -->
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchView"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:background="#DDE4E4"
+            android:queryHint="Search brands..."
+            android:layout_marginEnd="8dp"/> <!-- Margin to separate from the Spinner -->
+
+        <!-- Spinner with a weight of 1 -->
+        <Spinner
+            android:id="@+id/categoriesSpinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="#DDE4E4" />
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"

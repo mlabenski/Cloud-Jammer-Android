@@ -4,10 +4,15 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.Spinner
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,6 +30,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
@@ -35,6 +41,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var listViewLayoutManager: LinearLayoutManager
     private lateinit var gridViewLayoutManager: GridLayoutManager
     private var isListView = true
+    private lateinit var searchView: SearchView
+    private lateinit var categoriesSpinner: Spinner
+    private var productsCache: List<Product> = listOf()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +59,9 @@ class MainActivity : AppCompatActivity() {
         // Initialize Retrofit and make a network call
         initializeRetrofit()
 
+        // Setup search view
+        searchView = findViewById(R.id.searchView)
+        setupSearchView()
         // Setup UI
         setupUI()
 
@@ -69,7 +81,7 @@ class MainActivity : AppCompatActivity() {
             setLevel(HttpLoggingInterceptor.Level.BODY)
         }
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8080") // Replace with your actual base URL
+            .baseUrl("http://192.168.1.183:8080") // Replace with your actual base URL
             .addConverterFactory(GsonConverterFactory.create())
             .client(OkHttpClient.Builder().addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BODY
@@ -109,6 +121,8 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = listViewLayoutManager // Start with list view
         recyclerView.adapter = productAdapter
 
+        setupCategoriesSpinner();
+
         // Toggle button
         val toggleViewButton: Button = findViewById(R.id.toggleViewButton)
         toggleViewButton.setOnClickListener {
@@ -116,6 +130,7 @@ class MainActivity : AppCompatActivity() {
             recyclerView.layoutManager = if (isListView) {
                 toggleViewButton.text = "Grid View"
                 listViewLayoutManager
+
             } else {
                 toggleViewButton.text = "List View"
                 gridViewLayoutManager
@@ -130,6 +145,71 @@ class MainActivity : AppCompatActivity() {
             selectStore()
         }
     }
+
+    private fun setupSearchView() {
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                query?.let { searchForBrand(it) }
+                return true
+            }
+            override fun onQueryTextChange(newText: String?): Boolean {
+                newText?.let { searchForBrand(it) }
+                return true
+            }
+        })
+    }
+
+    private fun searchForBrand(query: String) {
+        val filteredProducts = if (query.isNotEmpty()) {
+            productsCache.filter { it.brand_name.contains(query, ignoreCase = true) }
+        } else {
+            productsCache
+        }
+        displayProductsGroupedByBrand(filteredProducts)
+    }
+
+    private fun setupCategoriesSpinner() {
+        categoriesSpinner = findViewById(R.id.categoriesSpinner)
+        val categories = arrayOf(
+            "All Categories",
+            "Salt Nic",
+            "Fruit and Candy",
+            "Menthol",
+            "Creams and Custards",
+            "Pastries and Dessert",
+            "Breakfast",
+            "Tobacco"
+        )
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, categories)
+        categoriesSpinner.adapter = adapter
+        categoriesSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View,
+                position: Int,
+                id: Long
+            ) {
+                val selectedCategory = categories[position]
+                filterProductsByCategory(selectedCategory)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // No action needed here
+            }
+        }
+    }
+
+        private fun filterProductsByCategory(category: String) {
+            val filteredProducts = if (category == "All Categories") {
+                productsCache
+            }
+            else {
+                productsCache.filter { product ->
+                    product.categories.split(",").any { it.trim().equals(category, ignoreCase = true) }
+                }
+            }
+            displayProductsGroupedByBrand(filteredProducts)
+        }
 
     private fun displayProductsGroupedByBrand(products: List<Product>) {
         val productsByBrand = products.groupBy { it.brand_name }
@@ -147,6 +227,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<List<Product>>, response: Response<List<Product>>) {
                 if (response.isSuccessful) {
                     // Successfully retrieved the list of products
+                    productsCache = response.body().orEmpty()
                     val products = response.body().orEmpty()
                     // Display these products grouped by brand
                     displayProductsGroupedByBrand(products)

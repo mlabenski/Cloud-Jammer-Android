@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="18sp"
-            android:textColor="#000"
+            android:textColor="@color/purple_500"
             android:textStyle="bold"
             android:paddingTop="8dp"
             android:text="Product Name" />
@@ -33,6 +33,16 @@
             android:textColor="#666"
             android:paddingTop="4dp"
             android:text="Product Description" />
+
+        <!-- TextView for the product description -->
+        <TextView
+            android:id="@+id/categories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="#666"
+            android:paddingTop="4dp"
+            android:text="Product Categories" />
 
         <!-- TextView for the nicotine percentage -->
         <TextView
