@@ -1,6 +1,7 @@
-package com.geeboff.cloudjammer
+package com.geeboff.cloudjammer.view
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
@@ -17,16 +18,22 @@ import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.geeboff.cloudjammer.R
 import com.geeboff.cloudjammer.adapter.ProductAdapter
 import com.geeboff.cloudjammer.api.ApiService
+import com.geeboff.cloudjammer.model.CustomField
 import com.geeboff.cloudjammer.model.Product
 import com.geeboff.cloudjammer.model.ProductItem
 import com.geeboff.cloudjammer.model.Store
+import com.google.gson.GsonBuilder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import network.CustomFieldDeserializer
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -44,13 +51,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var searchView: SearchView
     private lateinit var categoriesSpinner: Spinner
     private var productsCache: List<Product> = listOf()
-
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTheme(R.style.Theme_AppTheme)
         setContentView(R.layout.activity_main)
-
+        val buttonShowCustomProducts = findViewById<Button>(R.id.toggleCustomButton)
+        // Click listener for button show
+        buttonShowCustomProducts.setOnClickListener {
+            // Create an Intent to start CustomProductDisplayActivity
+            val intent = Intent(this, CustomProductDisplayActivity::class.java)
+            startActivity(intent)
+        }
         // Setup shared preferences
 
         // Initialize Retrofit
@@ -80,13 +93,19 @@ class MainActivity : AppCompatActivity() {
         val logging = HttpLoggingInterceptor().apply {
             setLevel(HttpLoggingInterceptor.Level.BODY)
         }
+
+        // Create a custom Gson instance
+        val customGson = GsonBuilder()
+            .registerTypeAdapter(CustomField::class.java, CustomFieldDeserializer())
+            .create()
+
+        // Update Retrofit builder to use the custom Gson instance
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.183:8080") // Replace with your actual base URL
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }).build())
+            .baseUrl("http://192.168.1.183:8080")
+            .addConverterFactory(GsonConverterFactory.create(customGson))
+            .client(OkHttpClient.Builder().addInterceptor(logging).build())
             .build()
+
         apiService = retrofit.create(ApiService::class.java)
     }
 
@@ -138,6 +157,17 @@ class MainActivity : AppCompatActivity() {
             productAdapter.notifyDataSetChanged()
         }
 
+        val hideProductsButton: Button = findViewById(R.id.hideProductsButton)
+        hideProductsButton.setOnClickListener {
+            productAdapter.isProductDetailsVisible = !productAdapter.isProductDetailsVisible
+            if (productAdapter.isProductDetailsVisible) {
+                hideProductsButton.text = getString(R.string.hide_products) // Update the text accordingly
+            } else {
+                hideProductsButton.text = getString(R.string.show_products) // Update the text accordingly
+            }
+            productAdapter.notifyDataSetChanged()
+            recyclerView.invalidateItemDecorations()
+        }
         // Set up the settings icon click listener
         val settingsIcon: ImageView = findViewById(R.id.settingsIcon)
         settingsIcon.setOnClickListener {
@@ -223,49 +253,72 @@ class MainActivity : AppCompatActivity() {
         productAdapter.updateData(productItems)
     }
     private fun loadProductsForStore(storeId: String) {
-        apiService.getProductsByStoreId(storeId).enqueue(object : Callback<List<Product>> {
-            override fun onResponse(call: Call<List<Product>>, response: Response<List<Product>>) {
-                if (response.isSuccessful) {
-                    // Successfully retrieved the list of products
-                    productsCache = response.body().orEmpty()
-                    val products = response.body().orEmpty()
-                    // Display these products grouped by brand
-                    displayProductsGroupedByBrand(products)
-                } else {
-                    // Handle the error scenario
-                    Log.e("MainActivity", "Error fetching products: ${response.errorBody()?.string()}")
+        coroutineScope.launch {
+            try {
+                // Asynchronously fetch both responses
+                val productsResponse = async { apiService.getProductsByStoreId(storeId) }
+                val customProductsResponse = async { apiService.getProductFields(storeId.toInt()) }
+
+                // Await both responses
+                val productsResult = productsResponse.await()
+                val customProductsResult = customProductsResponse.await()
+
+                withContext(Dispatchers.Main) {
+                    if (customProductsResult.isSuccessful && customProductsResult.body() != null) {
+                        handleCustomProducts(customProductsResult.body()!!)
+                    }
+
+                    if (productsResult.isSuccessful && productsResult.body() != null) {
+                        displayProductsGroupedByBrand(productsResult.body()!!)
+                    } else {
+                        // Handle errors
+                        Log.e("MainActivity", "Error fetching products")
+                    }
                 }
+            } catch (e: Exception) {
+                // Handle exceptions such as network errors
+                Log.e("MainActivity", "Error fetching data", e)
+            }
+        }
+    }
+
+
+    private fun handleCustomProducts(customProducts: Map<String, List<CustomField>>) {
+        customProducts.forEach { (productType, fields) ->
+            // Convert the list of fields to a String for logging
+            val fieldsString = fields.joinToString(separator = ", ") { field ->
+                "Field(name=${field.name}, type=${field.type}, options=${field.options})"
             }
 
-            override fun onFailure(call: Call<List<Product>>, t: Throwable) {
-                // Handle the scenario where the call failed due to network error, etc.
-                Log.e("MainActivity", "Failure fetching products", t)
-            }
-        })
+            // Log the product type and its fields
+            Log.d("CustomProducts", "Product Type: $productType, Fields: [$fieldsString]")
+        }
     }
 
     private fun selectStore() {
-        // Retrofit call to fetch stores
-        apiService.getStores(userID = "1923011923").enqueue(object : Callback<List<Store>> {
-            override fun onResponse(call: Call<List<Store>>, response: Response<List<Store>>) {
-                if (response.isSuccessful) {
-                    val stores = response.body().orEmpty()
-                    if (stores.isNotEmpty()) {
-                        showStoresDialog(stores)
-                    } else {
-                        Log.e("MainActivity", "No stores found.")
-                    }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    Log.e("MainActivity", "Error fetching stores: $errorBody")
-                }
-            }
+        coroutineScope.launch {
+            try {
+                val response = apiService.getStores(userID = "1923011923")
 
-            override fun onFailure(call: Call<List<Store>>, t: Throwable) {
-                Log.e("MainActivity", "Failure fetching stores: ${t.message}", t)
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val stores = response.body().orEmpty()
+                        if (stores.isNotEmpty()) {
+                            showStoresDialog(stores)
+                        } else {
+                            Log.e("MainActivity", "No stores found.")
+                        }
+                    } else {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e("MainActivity", "Error fetching stores: $errorBody")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Failure fetching stores: ${e.message}", e)
             }
-        })
+        }
     }
+
     // Show an AlertDialog with the list of stores for the user to select
     private fun showStoresDialog(stores: List<Store>) {
         print(stores)

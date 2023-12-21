@@ -13,6 +13,7 @@ import com.geeboff.cloudjammer.model.Product
 import com.geeboff.cloudjammer.model.ProductItem
 class ProductAdapter(private val items: MutableList<ProductItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    var isProductDetailsVisible = true
     enum class ViewType {
         HEADER, ITEM
     }
@@ -45,8 +46,14 @@ class ProductAdapter(private val items: MutableList<ProductItem>) : RecyclerView
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is ProductItem.Header -> (holder as HeaderViewHolder).bind(item)
-            is ProductItem.Item -> (holder as ProductViewHolder).bind(item.product, holder.itemView.context)
+            is ProductItem.Header -> {
+                holder.itemView.visibility = View.VISIBLE
+                (holder as HeaderViewHolder).bind(item)
+            }
+            is ProductItem.Item -> {
+                holder.itemView.visibility = if (isProductDetailsVisible) View.VISIBLE else View.GONE
+                (holder as ProductViewHolder).bind(item.product, holder.itemView.context, isProductDetailsVisible)
+            }
         }
     }
 
@@ -68,17 +75,30 @@ class ProductAdapter(private val items: MutableList<ProductItem>) : RecyclerView
         private val productCategories: TextView = itemView.findViewById(R.id.categories)
         private val productImage: ImageView = itemView.findViewById(R.id.productImage)
 
-        fun bind(product: Product, context: Context) {
-            productName.text = product.flavor
-            // Removed the line for binding the brand name here since it's part of the header
-            productDescription.text = product.description
-            productNicotine.text = product.nicotine_amount
-            productSize.text = product.bottle_size
-            productCategories.text = product.categories
-            Glide.with(context)
-                .load(R.drawable.sharp_smoking_rooms_24)
-                .placeholder(R.drawable.sharp_smoking_rooms_24)
-                .into(productImage)
+        fun bind(product: Product, context: Context, isDetailsVisible: Boolean) {
+            // Reset the visibility and layout parameters of the itemView
+            itemView.layoutParams = RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                if (isDetailsVisible) ViewGroup.LayoutParams.WRAP_CONTENT else 0
+            )
+            itemView.visibility = if (isDetailsVisible) View.VISIBLE else View.GONE
+
+            // Based on isDetailsVisible, set the text or clear it
+            productName.text = if (isDetailsVisible) product.flavor else ""
+            productDescription.text = if (isDetailsVisible) product.description else ""
+            productNicotine.text = if (isDetailsVisible) product.nicotine_amount else ""
+            productSize.text = if (isDetailsVisible) product.bottle_size else ""
+            productCategories.text = if (isDetailsVisible) product.categories else ""
+
+            // Manage the product image visibility and content
+            if (isDetailsVisible) {
+                Glide.with(context)
+                    .load(R.drawable.sharp_smoking_rooms_24)
+                    .placeholder(R.drawable.sharp_smoking_rooms_24)
+                    .into(productImage)
+            } else {
+                Glide.with(context).clear(productImage)
+            }
         }
     }
 }

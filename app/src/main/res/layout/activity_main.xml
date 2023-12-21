@@ -22,10 +22,20 @@
             android:padding="16dp"
             android:src="@drawable/baseline_settings_24" />
         <Button
+            android:id="@+id/hideProductsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Toggle Product" />
+        <Button
             android:id="@+id/toggleViewButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Toggle View" />
+        <Button
+            android:id="@+id/toggleCustomButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Toggle Products" />
     </androidx.appcompat.widget.Toolbar>
     <LinearLayout
         android:layout_width="match_parent"
@@ -56,7 +66,7 @@
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#DDE4E4"
+        android:background="#11B4B4"
         android:padding="4dp"
         tools:listitem="@layout/menu_item_layout" />
 </LinearLayout>

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Cloud Jammer</string>
+    <string name="hide_products">Hide Products</string>
+    <string name="show_products">Show Products</string>
 </resources>
