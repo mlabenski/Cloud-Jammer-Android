@@ -17,4 +17,7 @@ interface ApiService {
 
     @GET("/productGroupFieldsHandler")
     suspend fun getProductFields(@Query("store_id") storeId: Int): Response<Map<String, List<CustomField>>>
+
+    @GET("/productGroupDataHandler")
+    suspend fun getCustomProducts(@Query("table_name") tableName: String): List<Map<String, Any>>
 }

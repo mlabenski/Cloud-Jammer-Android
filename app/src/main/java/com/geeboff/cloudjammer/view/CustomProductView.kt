@@ -1,51 +1,86 @@
 package com.geeboff.cloudjammer.view
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.AttributeSet
+import android.util.Base64
+import android.util.Log
 import android.view.LayoutInflater
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.geeboff.cloudjammer.R
-import com.geeboff.cloudjammer.model.CustomField
-import com.geeboff.cloudjammer.model.CustomProduct
 
 class CustomProductView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    private val imageView: ImageView
+    private val detailsContainer: LinearLayout
+
     init {
-        LayoutInflater.from(context).inflate(R.layout.item_product, this, true)
-        orientation = VERTICAL // Set the orientation of the LinearLayout
+        // Log before inflating the layout
+        Log.d("CustomProductView", "Inflating layout for CustomProductView")
+
+        LayoutInflater.from(context).inflate(R.layout.custom_product, this, true)
+
+        // Log after inflating the layout
+        Log.d("CustomProductView", "Layout inflated. Attempting to find views by ID")
+
+        imageView = findViewById(R.id.custom_product_image) ?: throw AssertionError("ImageView not found")
+        detailsContainer = findViewById(R.id.product_details_container) ?: throw AssertionError("Details container not found")
+
+        // Log to confirm that the views are not null
+        Log.d("CustomProductView", "Views found: ImageView: $imageView, DetailsContainer: $detailsContainer")
     }
 
-    fun bindProduct(product: CustomProduct) {
-        // Clear existing views
-        removeAllViews()
+    fun bindProduct(productData: Map<String, Any>) {
+        detailsContainer.removeAllViews() // Clear previous detail views
 
-        // Dynamically add views for each field in the product
-        product.fields.forEach { field ->
-            when (field.type) {
-                "INTEGER", "TEXT" -> addTextView(field)
-                "BLOB" -> addImageView(field)
-                // Add more cases as needed
+        productData.forEach { (key, value) ->
+            when (key) {
+                "image" -> {
+                    // If the image data is a ByteArray
+                    if (value is ByteArray) {
+                        val bitmap = BitmapFactory.decodeByteArray(value, 0, value.size)
+                        imageView.setImageBitmap(bitmap)
+                    }
+                    // If the image data is a Base64 encoded string
+                    else if (value is String) {
+                        val bitmap = value.base64ToBitmap()
+                        bitmap?.let {
+                            imageView.setImageBitmap(it)
+                        }
+                    }
+                }
+                else -> {
+                    val textView = TextView(context).apply {
+                        text = "$key: $value"
+                        layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+                    }
+                    detailsContainer.addView(textView)
+                }
             }
         }
     }
 
-    private fun addTextView(field: CustomField) {
+    private fun addTextView(key: String, value: String) {
         val textView = TextView(context).apply {
-            text = "${field.name}: ${field.type}"
-            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-            // Add additional styling here if needed
+            text = "$key: $value"
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
         addView(textView)
     }
 
-    private fun addImageView(field: CustomField) {
-        val imageView = ImageView(context).apply {
-            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+    companion object {
+        fun String.base64ToBitmap(): Bitmap? {
+            return try {
+                val decodedBytes = Base64.decode(this, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
         }
-        addView(imageView)
     }
 }
