@@ -62,6 +62,13 @@
             android:background="#DDE4E4" />
     </LinearLayout>
 
+    <include
+        layout="@layout/product_group_navigation_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"/>
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"

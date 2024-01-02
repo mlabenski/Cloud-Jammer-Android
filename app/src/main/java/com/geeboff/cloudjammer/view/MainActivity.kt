@@ -3,7 +3,10 @@ package com.geeboff.cloudjammer.view
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
@@ -15,23 +18,29 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.geeboff.cloudjammer.R
 import com.geeboff.cloudjammer.adapter.ProductAdapter
+import com.geeboff.cloudjammer.adapter.ProductGroupNavigationAdapter
 import com.geeboff.cloudjammer.api.ApiService
+import com.geeboff.cloudjammer.deserializer.DynamicFieldsDeserializer
 import com.geeboff.cloudjammer.model.CustomField
+import com.geeboff.cloudjammer.model.NavProductGroup
 import com.geeboff.cloudjammer.model.Product
 import com.geeboff.cloudjammer.model.ProductItem
 import com.geeboff.cloudjammer.model.Store
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import network.CustomFieldDeserializer
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -50,6 +59,8 @@ class MainActivity : AppCompatActivity() {
     private var isListView = true
     private lateinit var searchView: SearchView
     private lateinit var categoriesSpinner: Spinner
+    private lateinit var productGroupNavigationAdapter: ProductGroupNavigationAdapter
+    private lateinit var productGroupNavigationRecyclerView: RecyclerView
     private var productsCache: List<Product> = listOf()
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -57,6 +68,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setTheme(R.style.Theme_AppTheme)
         setContentView(R.layout.activity_main)
+        // Initialize Retrofit and make a network call
+        initializeRetrofit()
         val buttonShowCustomProducts = findViewById<Button>(R.id.toggleCustomButton)
         // Click listener for button show
         buttonShowCustomProducts.setOnClickListener {
@@ -65,20 +78,22 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
         // Setup shared preferences
-
-        // Initialize Retrofit
         sharedPref = getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
-        // Initialize Retrofit and make a network call
-        initializeRetrofit()
 
         // Setup search view
         searchView = findViewById(R.id.searchView)
         setupSearchView()
         // Setup UI
         setupUI()
+        // Initialize RecyclerView and set its layout manager
+        productGroupNavigationRecyclerView = findViewById(R.id.productGroupNavigationRecyclerView)
+        productGroupNavigationRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
-        val storeId = sharedPref.getString("StoreID", null)
+        // Call setupProductGroups to fetch and display the product groups
+        setupProductGroups()
+
+        val storeId = sharedPref.getString("StoreID", "1")
         if (storeId == null) {
             print("hello i'm looking for a store ID")
             selectStore()
@@ -90,24 +105,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeRetrofit() {
-        val logging = HttpLoggingInterceptor().apply {
-            setLevel(HttpLoggingInterceptor.Level.BODY)
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // Create a custom Gson instance
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .build()
+
         val customGson = GsonBuilder()
-            .registerTypeAdapter(CustomField::class.java, CustomFieldDeserializer())
+            .registerTypeAdapter(object : TypeToken<Map<String, List<CustomField>>>() {}.type, DynamicFieldsDeserializer())
             .create()
 
-        // Update Retrofit builder to use the custom Gson instance
         val retrofit = Retrofit.Builder()
             .baseUrl("http://192.168.1.183:8080")
             .addConverterFactory(GsonConverterFactory.create(customGson))
-            .client(OkHttpClient.Builder().addInterceptor(logging).build())
+            .client(okHttpClient)
             .build()
 
         apiService = retrofit.create(ApiService::class.java)
     }
+
 
     private fun setupUI() {
         // set up the toolbar
@@ -174,6 +192,73 @@ class MainActivity : AppCompatActivity() {
             // Call selectStore to show the store selection dialog
             selectStore()
         }
+    }
+    private fun setupProductGroups() {
+        fetchProductGroups(storeId = 1) { productGroups ->
+            productGroupNavigationAdapter = ProductGroupNavigationAdapter(productGroups).apply {
+                onItemClickListener = object : ProductGroupNavigationAdapter.OnItemClickListener {
+                    override fun onItemClick(navProductGroup: NavProductGroup) {
+                        // Intent to start CustomProductDisplayActivity with the selected product group
+                        val intent = Intent(this@MainActivity, CustomProductDisplayActivity::class.java)
+                        intent.putExtra("productGroupName", navProductGroup.name)
+                        startActivity(intent)
+                    }
+                }
+            }
+            productGroupNavigationRecyclerView.adapter = productGroupNavigationAdapter
+        }
+    }
+
+    private fun fetchProductGroups(storeId: Int, callback: (List<NavProductGroup>) -> Unit) {
+        lifecycleScope.launch {
+            try {
+                val response = apiService.getProductGroups(storeId, true)
+                if (response.isSuccessful && response.body() != null) {
+                    val jsonObject = response.body()!!
+                    val productGroups = processResponse(jsonObject)
+                    callback.invoke(productGroups)
+                } else {
+                    Log.e("CustomProductDisplay", "Error fetching product groupszz: ${response.errorBody()?.string()}")
+                    callback.invoke(emptyList())
+                }
+            } catch (e: Exception) {
+                Log.e("CustomProductDisplay", "Error fetching product groupsyyy", e)
+                callback.invoke(emptyList())
+            }
+        }
+    }
+
+    // Retrofit API Response Processing
+    private fun processResponse(response: JsonObject): List<NavProductGroup> {
+        val productGroups = mutableListOf<NavProductGroup>()
+
+        response.entrySet().forEach { entry ->
+            val groupName = entry.key
+            val groupObject = entry.value.asJsonObject
+            val fieldsJsonArray = groupObject.getAsJsonArray("Fields") ?: JsonArray()
+            println("Group name is:")
+            println(groupName)
+            val fields = fieldsJsonArray.mapNotNull { fieldElement ->
+                val fieldObject = fieldElement.asJsonObject
+                val fieldName = fieldObject.get("name")?.asString ?: return@mapNotNull null
+                val fieldType = fieldObject.get("type")?.asString ?: return@mapNotNull null
+                val options = fieldObject.get("options")?.asJsonArray?.mapNotNull { it?.asString }
+                CustomField(name = fieldName, type = fieldType, options = options)
+            }
+            val imageBase64 = groupObject.get("Image")?.asString
+            val imageBitmap = imageBase64?.let { base64ToBitmap(it) }
+
+            productGroups.add(NavProductGroup(name = groupName, fields = fields, image = imageBitmap))
+        }
+
+        return productGroups
+    }
+
+
+
+    private fun base64ToBitmap(base64Str: String): Bitmap {
+        val imageBytes = Base64.decode(base64Str, Base64.DEFAULT)
+        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
     }
 
     private fun setupSearchView() {
@@ -257,17 +342,11 @@ class MainActivity : AppCompatActivity() {
             try {
                 // Asynchronously fetch both responses
                 val productsResponse = async { apiService.getProductsByStoreId(storeId) }
-                val customProductsResponse = async { apiService.getProductFields(storeId.toInt()) }
 
                 // Await both responses
                 val productsResult = productsResponse.await()
-                val customProductsResult = customProductsResponse.await()
 
                 withContext(Dispatchers.Main) {
-                    if (customProductsResult.isSuccessful && customProductsResult.body() != null) {
-                        handleCustomProducts(customProductsResult.body()!!)
-                    }
-
                     if (productsResult.isSuccessful && productsResult.body() != null) {
                         displayProductsGroupedByBrand(productsResult.body()!!)
                     } else {
@@ -277,7 +356,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 // Handle exceptions such as network errors
-                Log.e("MainActivity", "Error fetching data", e)
+                Log.e("MainActivity", "Error fetching data xyx", e)
             }
         }
     }

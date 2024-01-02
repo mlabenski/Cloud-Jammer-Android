@@ -6,7 +6,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.geeboff.cloudjammer.view.CustomProductView
 
-class CustomProductAdapter(private val context: Context, private val products: List<Map<String, Any>>) : RecyclerView.Adapter<CustomProductAdapter.ProductViewHolder>() {
+class CustomProductAdapter(
+    private val context: Context,
+    private var products: List<Map<String, Any>>
+) : RecyclerView.Adapter<CustomProductAdapter.ProductViewHolder>() {
 
     class ProductViewHolder(val productView: CustomProductView) : RecyclerView.ViewHolder(productView)
 
@@ -19,10 +22,14 @@ class CustomProductAdapter(private val context: Context, private val products: L
         return ProductViewHolder(productView)
     }
 
-
     override fun onBindViewHolder(holder: ProductViewHolder, position: Int) {
         holder.productView.bindProduct(products[position])
     }
 
     override fun getItemCount() = products.size
+
+    fun updateProducts(newProducts: List<Map<String, Any>>) {
+        products = newProducts
+        notifyDataSetChanged() // Notify any registered observers that the data set has changed.
+    }
 }

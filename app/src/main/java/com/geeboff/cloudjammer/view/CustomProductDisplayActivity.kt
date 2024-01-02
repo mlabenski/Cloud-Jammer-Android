@@ -1,6 +1,7 @@
 package com.geeboff.cloudjammer.view
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,34 +29,69 @@ class CustomProductDisplayActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.recycler_view)
         recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = CustomProductAdapter(this, emptyList())
+        recyclerView.adapter = adapter
 
-        // Load custom products
-        loadCustomProducts()
-    }
-
-
-    private fun loadCustomProducts() {
-        lifecycleScope.launch {
-            val customProducts = getCustomProducts()
-            // Set up the adapter with the list of custom products
-            adapter = CustomProductAdapter(this@CustomProductDisplayActivity, customProducts)
-            recyclerView.adapter = adapter
+        // Get the product group name passed from MainActivity
+        val productGroupName = intent.getStringExtra("productGroupName")
+        if (productGroupName != null) {
+            loadCustomProducts(productGroupName)
+        } else {
+            // Handle the error or request the user to select a product group
         }
     }
 
-    private suspend fun getCustomProducts(): List<Map<String, Any>> {
+    private fun loadCustomProducts(productGroup: String) {
+        lifecycleScope.launch {
+            val customProducts = getCustomProducts(productGroup)
+            adapter.updateProducts(customProducts)
+        }
+    }
+
+    private suspend fun getCustomProducts(productGroup: String): List<Map<String, Any>> {
         val apiService = RetrofitInstance.retrofit.create(ApiService::class.java)
         return try {
-            apiService.getCustomProducts("glassware")
+            apiService.getCustomProducts(productGroup)
         } catch (e: Exception) {
-            Log.e("CustomProductDisplay", "Error fetching custom products", e)
+            Log.e("CustomProductDisplay", "Error fetching custom products for $productGroup", e)
             emptyList()
         }
     }
 
+    private fun showProductGroupSelection(groups: List<String>) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Choose a Product Group")
+        builder.setItems(groups.toTypedArray()) { _, which ->
+            val selectedGroup = groups[which]
+            loadCustomProducts(selectedGroup)
+        }
+        builder.show()
+    }
+
+    private suspend fun getProductGroups(storeId: Int): List<String> {
+        val apiService = RetrofitInstance.retrofit.create(ApiService::class.java)
+        return try {
+            val response = apiService.getProductFields(storeId)
+            response.keys.toList() // Convert the keys of the map to a list of product group names
+        } catch (e: Exception) {
+            Log.e("CustomProductDisplay", "Error fetching product groups", e)
+            emptyList()
+        }
+    }
+
+
+    data class Field(
+        val name: String,
+        val type: String,
+        val options: List<String>? = null
+    )
+
     interface ApiService {
         @GET("productGroupDataHandler")
         suspend fun getCustomProducts(@Query("table_name") tableName: String): List<Map<String, Any>>
+
+        @GET("productGroupFieldsHandler")
+        suspend fun getProductFields(@Query("store_id") storeId: Int): Map<String, List<Field>>
     }
 }
 
