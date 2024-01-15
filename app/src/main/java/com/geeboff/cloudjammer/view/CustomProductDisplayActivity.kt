@@ -32,8 +32,13 @@ class CustomProductDisplayActivity : AppCompatActivity() {
         adapter = CustomProductAdapter(this, emptyList())
         recyclerView.adapter = adapter
 
+        //navigation
+
+
         // Get the product group name passed from MainActivity
         val productGroupName = intent.getStringExtra("productGroupName")
+        val activeItemIndex = intent.getIntExtra("activeItemIndex", -1)
+
         if (productGroupName != null) {
             loadCustomProducts(productGroupName)
         } else {

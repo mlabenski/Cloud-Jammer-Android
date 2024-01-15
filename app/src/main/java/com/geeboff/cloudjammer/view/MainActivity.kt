@@ -103,7 +103,6 @@ class MainActivity : AppCompatActivity() {
             loadProductsForStore(storeId)
         }
     }
-
     private fun initializeRetrofit() {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -198,12 +197,15 @@ class MainActivity : AppCompatActivity() {
             productGroupNavigationAdapter = ProductGroupNavigationAdapter(productGroups).apply {
                 onItemClickListener = object : ProductGroupNavigationAdapter.OnItemClickListener {
                     override fun onItemClick(navProductGroup: NavProductGroup) {
+                        val clickedIndex = productGroups.indexOf(navProductGroup)
                         // Intent to start CustomProductDisplayActivity with the selected product group
                         val intent = Intent(this@MainActivity, CustomProductDisplayActivity::class.java)
                         intent.putExtra("productGroupName", navProductGroup.name)
+                        intent.putExtra("activeItemIndex", clickedIndex)
                         startActivity(intent)
                     }
                 }
+                setActiveItem(1)
             }
             productGroupNavigationRecyclerView.adapter = productGroupNavigationAdapter
         }

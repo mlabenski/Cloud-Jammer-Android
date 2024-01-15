@@ -10,14 +10,16 @@ import com.geeboff.cloudjammer.R
 import com.geeboff.cloudjammer.model.NavProductGroup
 
 class ProductGroupNavigationAdapter(private val productGroups: List<NavProductGroup>) : RecyclerView.Adapter<ProductGroupNavigationAdapter.ViewHolder>() {
-
+    private var activeItemIndex = -1
     interface OnItemClickListener {
         fun onItemClick(navProductGroup: NavProductGroup)
     }
     var onItemClickListener: OnItemClickListener? = null
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imageView: ImageView = view.findViewById(R.id.productGroupImage)
         val nameView: TextView = view.findViewById(R.id.productGroupName)
+        val activeIndicator: View = view.findViewById(R.id.activeIndicator)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -30,9 +32,10 @@ class ProductGroupNavigationAdapter(private val productGroups: List<NavProductGr
 
         holder.itemView.setOnClickListener {
             onItemClickListener?.onItemClick(productGroup)
+            setActiveItem(position)
         }
         holder.nameView.text = productGroup.name
-
+        holder.activeIndicator.visibility = if (position == activeItemIndex) View.VISIBLE else View.GONE;
         // Check if the image is a Bitmap and set it directly
         productGroup.image?.let {
             holder.imageView.setImageBitmap(it)
@@ -42,5 +45,16 @@ class ProductGroupNavigationAdapter(private val productGroups: List<NavProductGr
         }
     }
 
+    fun setActiveItem(newActiveIndex: Int) {
+        val previousActiveIndex = activeItemIndex
+        activeItemIndex = newActiveIndex
+        if (previousActiveIndex >= 0) {
+            notifyItemChanged(previousActiveIndex)
+        }
+        notifyItemChanged(newActiveIndex)
+    }
+
     override fun getItemCount() = productGroups.size
+
 }
+
