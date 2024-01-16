@@ -67,7 +67,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"/>
-
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:background="#11B4B4"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
@@ -76,4 +80,5 @@
         android:background="#11B4B4"
         android:padding="4dp"
         tools:listitem="@layout/menu_item_layout" />
+
 </LinearLayout>

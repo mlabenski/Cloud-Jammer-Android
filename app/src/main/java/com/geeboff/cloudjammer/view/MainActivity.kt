@@ -27,6 +27,7 @@ import com.geeboff.cloudjammer.adapter.ProductAdapter
 import com.geeboff.cloudjammer.adapter.ProductGroupNavigationAdapter
 import com.geeboff.cloudjammer.api.ApiService
 import com.geeboff.cloudjammer.deserializer.DynamicFieldsDeserializer
+import com.geeboff.cloudjammer.fragments.CJProductsFragment
 import com.geeboff.cloudjammer.model.CustomField
 import com.geeboff.cloudjammer.model.NavProductGroup
 import com.geeboff.cloudjammer.model.Product
@@ -79,7 +80,11 @@ class MainActivity : AppCompatActivity() {
         }
         // Setup shared preferences
         sharedPref = getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-
+        if (savedInstanceState == null) {
+            supportFragmentManager.beginTransaction()
+                .add(R.id.fragment_container, CJProductsFragment())
+                .commit()
+        }
 
         // Setup search view
         searchView = findViewById(R.id.searchView)
