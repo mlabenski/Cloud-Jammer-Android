@@ -79,6 +79,7 @@
         android:layout_height="match_parent"
         android:background="#11B4B4"
         android:padding="4dp"
-        tools:listitem="@layout/menu_item_layout" />
+        tools:listitem="@layout/menu_item_layout"
+        android:visibility="gone"/>
 
 </LinearLayout>

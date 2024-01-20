@@ -24,4 +24,8 @@ interface ApiService {
 
     @GET("/productGroupDataHandler")
     suspend fun getProductGroupData(@Query("table_name") tableName: String): Response<List<Product>>
+
+    @GET("/productGroupDataHandler")
+    suspend fun getProductGroupDataTwo(@Query("table_name") tableName: String): Response<List<Map<String, Any>>>
+
 }

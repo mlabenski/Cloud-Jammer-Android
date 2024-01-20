@@ -28,6 +28,7 @@ import com.geeboff.cloudjammer.adapter.ProductGroupNavigationAdapter
 import com.geeboff.cloudjammer.api.ApiService
 import com.geeboff.cloudjammer.deserializer.DynamicFieldsDeserializer
 import com.geeboff.cloudjammer.fragments.CJProductsFragment
+import com.geeboff.cloudjammer.fragments.CustomProductsFragment
 import com.geeboff.cloudjammer.model.CustomField
 import com.geeboff.cloudjammer.model.NavProductGroup
 import com.geeboff.cloudjammer.model.Product
@@ -122,7 +123,7 @@ class MainActivity : AppCompatActivity() {
             .create()
 
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.183:8080")
+            .baseUrl("http://10.0.0.142:8080")
             .addConverterFactory(GsonConverterFactory.create(customGson))
             .client(okHttpClient)
             .build()
@@ -202,12 +203,20 @@ class MainActivity : AppCompatActivity() {
             productGroupNavigationAdapter = ProductGroupNavigationAdapter(productGroups).apply {
                 onItemClickListener = object : ProductGroupNavigationAdapter.OnItemClickListener {
                     override fun onItemClick(navProductGroup: NavProductGroup) {
-                        val clickedIndex = productGroups.indexOf(navProductGroup)
-                        // Intent to start CustomProductDisplayActivity with the selected product group
-                        val intent = Intent(this@MainActivity, CustomProductDisplayActivity::class.java)
-                        intent.putExtra("productGroupName", navProductGroup.name)
-                        intent.putExtra("activeItemIndex", clickedIndex)
-                        startActivity(intent)
+                        val fragment = if (navProductGroup.name == "cj_products") {
+                            CJProductsFragment() // Use CJProductsFragment for standard products
+                        } else {
+                            CustomProductsFragment().apply {
+                                arguments = Bundle().apply {
+                                    putString("tableName", navProductGroup.name)
+                                }
+                            }
+                        }
+
+                        supportFragmentManager.beginTransaction()
+                            .replace(R.id.fragment_container, fragment)
+                            .addToBackStack(null) // Optional: Add to back stack for navigational purposes
+                            .commit()
                     }
                 }
                 setActiveItem(1)
@@ -215,6 +224,8 @@ class MainActivity : AppCompatActivity() {
             productGroupNavigationRecyclerView.adapter = productGroupNavigationAdapter
         }
     }
+
+
 
     private fun fetchProductGroups(storeId: Int, callback: (List<NavProductGroup>) -> Unit) {
         lifecycleScope.launch {
